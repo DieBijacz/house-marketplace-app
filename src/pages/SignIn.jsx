@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {ReactComponent as ArrowRightIcon} from '../assets/svg/keyboardArrowRightIcon.svg'
 import { getAuth, signInWithEmailAndPassword} from "firebase/auth";
+import { toast } from 'react-toastify';
 import {FaEye} from 'react-icons/fa'
 
 function SignIn() {
@@ -34,7 +35,11 @@ function SignIn() {
         navigate('/profile')
       }
     } catch (error) {
-      console.log(error);
+      toast.error('Wrong User Input', {
+        autoClose: 3000,
+        theme: 'dark',
+        hideProgressBar: true,
+      })
     }
   }
 

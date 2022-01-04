@@ -4,6 +4,7 @@ import {ReactComponent as ArrowRightIcon} from '../assets/svg/keyboardArrowRight
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore"; 
 import {db} from '../firebase.config'
+import { toast } from 'react-toastify';
 import {FaEye} from 'react-icons/fa'
 
 function SignUp() {
@@ -53,7 +54,11 @@ function SignUp() {
       // redirect to home page
       navigate('/')
     } catch (error) {
-      console.log(error);
+      toast.error('Wrong Input', {
+        autoClose: 3000,
+        theme: 'dark',
+        hideProgressBar: true,
+      })
     }
   }
 
