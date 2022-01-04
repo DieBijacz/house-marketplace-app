@@ -1,6 +1,9 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {ReactComponent as ArrowRightIcon} from '../assets/svg/keyboardArrowRightIcon.svg'
+import { getAuth, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore"; 
+import {db} from '../firebase.config'
 import {FaEye} from 'react-icons/fa'
 
 function SignUp() {
@@ -17,9 +20,41 @@ function SignUp() {
 
   const onChange = (e) => {
     setFormData((prevState) => ({
-      ...prevState,
+      ...prevState, 
       [e.target.id]: e.target.value,
     }))
+  }
+
+  const onSubmit = async (e) => {
+    e.preventDefault()
+
+    try {
+      // get auth value
+      const auth = getAuth()
+      console.log(auth);
+
+      // create user
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      const user = userCredential.user
+
+      // update displayed name
+      updateProfile(auth.currentUser, {
+        displayName: name,
+      })
+
+      // copy data and removes password so its not in db
+      const formDataCopy = {...formData}
+      delete formDataCopy.password
+      formDataCopy.timestamp = serverTimestamp()
+
+      // update and adds user to db
+      await setDoc(doc(db, 'users', user.uid), formDataCopy)
+
+      // redirect to home page
+      navigate('/')
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   return (
@@ -31,7 +66,7 @@ function SignUp() {
           </p>
         </header>
         <main>
-          <form>
+          <form onSubmit={onSubmit}>
             <input onChange={onChange} type="text" className='nameInput' placeholder='Name' id='name' value={name}/>
             <input onChange={onChange} type="email" className='emailInput' placeholder='Email' id='email' value={email}/>
             <div className="passwordInputDiv">
