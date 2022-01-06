@@ -386,11 +386,23 @@ button {
   border-radius: 1.5rem;
   object-fit: cover;
   margin: 0 auto;
+  box-shadow: 0px 9px 50px -9px rgba(0, 0, 0, 0.82);
+}
+.exploreCategoryBox {
+  position: relative;
+}
+.exploreCategoryBox:hover {
+  transform: scale(110%);
 }
 
 .exploreCategoryName {
-  font-weight: 500;
-  text-align: left;
+  position: absolute;
+  right: 20px;
+  bottom: 0;
+  color: white;
+  text-shadow: 0 0 10px black;
+  font-size: 1.3rem;
+  font-weight: 600;
 }
 
 .category {
