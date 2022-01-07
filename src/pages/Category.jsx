@@ -35,7 +35,6 @@ function Category() {
         const listings = []
 
         querySnap.forEach((doc) => {
-          console.log(doc.data());
           return listings.push({
             // id will be id of user who added offer
             // on Firestore Database collection => 'listings => id
@@ -51,7 +50,7 @@ function Category() {
       }
     }
     fetchListings()
-  }, [])
+  }, [params.categoryName])
 
   return (
     <div className='category'>
