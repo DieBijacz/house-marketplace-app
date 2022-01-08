@@ -4,6 +4,8 @@ import {useNavigate} from 'react-router-dom'
 import Spinner from '../components/Spinner'
 import {toast} from 'react-toastify'
 
+const apiKey = process.env.REACT_APP_API_KEY
+
 function CreateListing() {
   const [geolocationEnabled, setGeolocationEnabled] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -29,8 +31,55 @@ function CreateListing() {
   const navigate = useNavigate()
   const isMounted = useRef(true)
 
-  const onSubmit = (e) => {
+  // on form submit
+  const onSubmit = async (e) => {
     e.preventDefault()
+    setLoading(true)
+
+    // validate form inputs
+    if(discountedPrice >= regularPrice){
+      setLoading(false)
+      toast.error('Discounted Price expected to be lower then Regular Price')
+      return
+    }
+    if(imageUrls.length > 6){
+      setLoading(false)
+      toast.error('Max 6 images')
+      return
+    }
+
+    // create var to be added to firebase based on geolocation
+    let geolocation = {}
+    let location
+
+    if(geolocationEnabled) {
+      // if geolocation is enabled
+      // fetch lat, lng from google based on address passed in form
+      const resp = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${apiKey}`)
+      const data = await resp.json()
+      
+      // validate location data 
+      location = data.status === 'ZERO_RESULTS' ? undefined : data.results[0]?.formatted_address
+      if(location === undefined || location.includes('undefined')){
+        setLoading(false)
+        toast.error('Please enter a correct address')
+        return
+      }
+
+      // sets geolocation to be added to listing in firebase
+      geolocation.lat = data.results[0]?.geometry.location.lat ?? 0
+      geolocation.lng = data.results[0]?.geometry.location.lng ?? 0
+
+    } else {
+      // if geolocation is disabled
+      // user can pass coords manually in form
+      geolocation.lat = latitude
+      geolocation.lng = longitude
+      location = address
+    }
+
+    setLoading(false)
+
   }
   
   const onMutate = (e) => {
@@ -72,7 +121,7 @@ function CreateListing() {
     }
 
     return () => {
-      // need to return in func 
+      // need to be return inside func 
       isMounted.current = false
     }
   }, [isMounted])
