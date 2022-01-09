@@ -26,7 +26,8 @@ function SignUp() {
       [e.target.id]: e.target.value,
     }))
   }
-
+  
+  // DOCS  https://firebase.google.com/docs/auth/web/start?hl=en
   const onSubmit = async (e) => {
     e.preventDefault()
 

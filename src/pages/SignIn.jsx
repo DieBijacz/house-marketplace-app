@@ -24,6 +24,7 @@ function SignIn() {
     }))
   }
 
+//   DOCS https://firebase.google.com/docs/auth/web/start?hl=en
   const onSubmit = async (e) => {
     e.preventDefault()
 
