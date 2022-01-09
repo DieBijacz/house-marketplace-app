@@ -5,6 +5,7 @@ import {getDoc, doc} from 'firebase/firestore'
 import { getAuth } from 'firebase/auth'
 import Spinner from '../components/Spinner'
 import shareIcon from '../assets/svg/shareIcon.svg'
+import {MapContainer, Marker, Popup, TileLayer} from 'react-leaflet'
 
 function Listing() {
   const [listing, setListing] = useState(null)
@@ -95,6 +96,22 @@ function Listing() {
         </p>
           
 {/* MAP */}
+{/* https://leafletjs.com/reference.html#latlng */}
+{/* https://react-leaflet.js.org/docs/start-setup/ */}
+        <div className="leafletContainer">
+          <MapContainer style={{height: '100%', width: '100%', maxWidth:'600px'}} center={[listing.geolocation.lat, listing.geolocation.lng]} zoom={13} scrollWheelZoom={false}>
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <Marker position={[listing.geolocation.lat, listing.geolocation.lng]}>
+              <Popup>
+                {listing.name}. <br />
+                {listing.location}
+                </Popup>
+            </Marker>
+          </MapContainer>
+        </div>
 
 {/* CONTACT LANDLORD */}
         {auth.currentUser?.uid !== listing.userRef && (
