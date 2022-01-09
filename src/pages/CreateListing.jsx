@@ -1,6 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react'
 import {getAuth, onAuthStateChanged} from 'firebase/auth'
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import {addDoc, collection, serverTimestamp} from 'firebase/firestore'
 import {db} from '../firebase.config'
 import {useNavigate} from 'react-router-dom'
 import Spinner from '../components/Spinner'
@@ -23,16 +24,35 @@ function CreateListing() {
     offer: false,
     regularPrice: 0,
     discountedPrice: 0,
-    imageUrls: [],
+    images: {},
     latitude: 0,
     longitude: 0,
   })
 
-  const {type, name, bedrooms, bathrooms, parking, furnished, address, offer, regularPrice, discountedPrice, imageUrls, latitude, longitude} = formData
+  const {type, name, bedrooms, bathrooms, parking, furnished, address, offer, regularPrice, discountedPrice, images, latitude, longitude} = formData
 
   const auth = getAuth()
   const navigate = useNavigate()
   const isMounted = useRef(true)
+
+  useEffect(() => {
+    if(isMounted) {
+      onAuthStateChanged(auth, (user) => {
+        if(user) {
+          // add user to formData as userRef with value of user.uid
+          setFormData({...formData, userRef: user.uid})
+        } else {
+          // if there is no user logged in then navigate to sign in page
+          navigate('/sign-in')
+        }
+      })
+    }
+
+    return () => {
+      // need to be return inside func 
+      isMounted.current = false
+    }
+  }, [isMounted])
 
   // on form submit
   const onSubmit = async (e) => {
@@ -46,7 +66,7 @@ function CreateListing() {
       return
     }
 
-    if(imageUrls.length > 6){
+    if(images.length > 6){
       setLoading(false)
       toast.error('Max 6 images')
       return
@@ -62,24 +82,27 @@ function CreateListing() {
       const resp = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${apiKey}`)
       const data = await resp.json()
       
-      // validate location data 
-      location = data.status === 'ZERO_RESULTS' ? undefined : data.results[0]?.formatted_address
-      if(location === undefined || location.includes('undefined')){
-        setLoading(false)
-        toast.error('Please enter a correct address')
-        return
-      }
-
       // sets geolocation to be added to listing in firebase
       geolocation.lat = data.results[0]?.geometry.location.lat ?? 0
       geolocation.lng = data.results[0]?.geometry.location.lng ?? 0
 
+      // validate location data 
+      location =
+        data.status === 'ZERO_RESULTS'
+          ? undefined
+          : data.results[0]?.formatted_address
+
+      if (location === undefined || location.includes('undefined')) {
+        setLoading(false)
+        toast.error('Please enter a correct address')
+        return
+      }
     } else {
-      // if geolocation is disabled
-      // user can pass coords manually in form
-      geolocation.lat = latitude
-      geolocation.lng = longitude
-      location = address
+    // if geolocation is disabled
+    // user can pass coords manually in form
+    geolocation.lat = latitude
+    geolocation.lng = longitude
+    // location = address
     }
 
     // store image in firebase function
@@ -121,67 +144,71 @@ function CreateListing() {
           }
         );
       })
+
     }
 
-    const imgUrls = await Promise.all(
+    const imageUrls = await Promise.all(
       // loop through urls passed in form and call storeImage
-      [...imageUrls].map(image => storeImage(image))
+      [...images].map((image) => storeImage(image))
     ).catch(() => {
       setLoading(false)
       toast.error('Images not uploaded')
       return
     })
 
-    console.log(imgUrls);
+    // create obj to be added to firebase
+    const formDataCopy = {
+      ...formData,
+      imageUrls,
+      geolocation,
+      timestamp: serverTimestamp()
+    }
 
+    // clear
+    // imageUrls as I want to have imgUrls instead
+    // address => location
+    // if offer === false then delete discountedPrice
+    delete formDataCopy.images
+    delete formDataCopy.address
+    location && (formDataCopy.location = location)
+    !formDataCopy.offer && delete formDataCopy.discountedPrice
+
+    // set listing to firebase
+    const docRef = await addDoc(collection(db, 'listings'), formDataCopy)
     setLoading(false)
+    toast.success('Listing saved')
+
+    navigate(`/category/${formDataCopy.type}/${docRef.id}`)
   }
   
   const onMutate = (e) => {
-    // boolean
     let boolean = null
-    if(e.target.value === 'true') {
+
+    if (e.target.value === 'true') {
       boolean = true
     }
-    if(e.target.value === 'false') {
+    if (e.target.value === 'false') {
       boolean = false
     }
-    // files
-    if(e.target.files) {
-      setFormData((prev) => ({
-        ...prev,
-        imageUrls: e.target.files
+
+    // Files
+    if (e.target.files) {
+      setFormData((prevState) => ({
+        ...prevState,
+        images: e.target.files,
       }))
     }
-    if(!e.target.files) {
-      setFormData((prev) => ({
-        ...prev,
-        [e.target.id]: boolean ?? e.target.value
+
+    // Text/Booleans/Numbers
+    if (!e.target.files) {
+      setFormData((prevState) => ({
+        ...prevState,
+        [e.target.id]: boolean ?? e.target.value,
       }))
     }
-    // text
   }
 
-  useEffect(() => {
-    if(isMounted) {
-      onAuthStateChanged(auth, (user) => {
-        if(user) {
-          // add user to formData as userRef with value of user.uid
-          setFormData({...formData, userRef: user.uid})
-        } else {
-          // if there is no user logged in then navigate to sign in page
-          navigate('/sign-in')
-        }
-      })
-    }
-
-    return () => {
-      // need to be return inside func 
-      isMounted.current = false
-    }
-  }, [isMounted])
-
-  if(loading) {
+  if (loading) {
     return <Spinner />
   }
 
@@ -205,11 +232,11 @@ function CreateListing() {
           <div className="formRooms flex">
             <div>
               <label className='formLabel'>Bedrooms</label>
-              <input onChange={onMutate} type="text" type='number' id='bedrooms' value={bedrooms} className="formInputSmall" min='1' max='50' required/>
+              <input onChange={onMutate} type='number' id='bedrooms' value={bedrooms} className="formInputSmall" min='1' max='50' required/>
             </div>
             <div>
               <label className='formLabel'>Bathrooms</label>
-              <input onChange={onMutate} type="text" type='number' id='bathrooms' value={bathrooms} className="formInputSmall" min='1' max='50' required/>
+              <input onChange={onMutate} type='number' id='bathrooms' value={bathrooms} className="formInputSmall" min='1' max='50' required/>
             </div>
           </div>
 

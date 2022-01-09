@@ -33,7 +33,7 @@ function Category() {
         const querySnap = await getDocs(q)
 
         const listings = []
-
+        
         querySnap.forEach((doc) => {
           return listings.push({
             // id will be id of user who added offer
@@ -42,7 +42,8 @@ function Category() {
             data: doc.data()
           })
         })
-
+        console.log(listings);
+        
         setListings(listings)
         setLoading(false)
       } catch (error) {
