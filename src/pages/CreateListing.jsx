@@ -102,7 +102,6 @@ function CreateListing() {
     // user can pass coords manually in form
     geolocation.lat = latitude
     geolocation.lng = longitude
-    // location = address
     }
 
     // store image in firebase function
@@ -170,7 +169,7 @@ function CreateListing() {
     // if offer === false then delete discountedPrice
     delete formDataCopy.images
     delete formDataCopy.address
-    location && (formDataCopy.location = location)
+    formDataCopy.location = address
     !formDataCopy.offer && delete formDataCopy.discountedPrice
 
     // set listing to firebase
@@ -178,6 +177,7 @@ function CreateListing() {
     setLoading(false)
     toast.success('Listing saved')
 
+    // <Route path="/category/:categoryName/:listingId" element={<Listing />} /> from App.js
     navigate(`/category/${formDataCopy.type}/${docRef.id}`)
   }
   
