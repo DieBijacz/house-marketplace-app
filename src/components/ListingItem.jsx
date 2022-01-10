@@ -40,8 +40,9 @@ function ListingItem({listing, id, onDelete}) {
           </div>
         </div>
       </Link>
+      {/* if passed onDelete then onClick call onDelete and pass id to Profile.jsx*/}
       {onDelete && (
-        <DeleteIcon onClick={() => onDelete(listing.id, listing.name)} className='removeIcon' fill='rgb(231, 76, 60)'/>
+        <DeleteIcon onClick={() => onDelete(listing.id)} className='removeIcon' fill='rgb(231, 76, 60)'/>
       )}
     </li>
   )
