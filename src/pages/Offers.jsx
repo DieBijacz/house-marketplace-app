@@ -9,6 +9,7 @@ import ListingItem from '../components/ListingItem'
 function Offers() {
   const [listings, setListings] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [lastFetchedListing, setLastFetchedListing] = useState(null)
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -23,11 +24,15 @@ function Offers() {
           // check type ('rent' or 'sell')
           where('offer', '==', true), 
           orderBy('timestamp', 'desc'), 
-          limit(10)
+          limit(5)
         )
 
         // execute query
         const querySnap = await getDocs(q)
+
+        // get last fetched listing querySnap.docs[last element]
+        const lastVisible = querySnap.docs[querySnap.docs.length - 1]
+        setLastFetchedListing(lastVisible)
 
         const listings = []
 
@@ -49,6 +54,40 @@ function Offers() {
     fetchListings()
   }, [])
 
+  // PAGINATION / LOAD MORE
+  const onFetchMoreListings = async () => {
+    try {
+      const listingsRef = collection(db, 'listings')
+
+      const q = query(
+        listingsRef, 
+        where('offer', '==', true), 
+        orderBy('timestamp', 'desc'), 
+        // here is a starting point for fetching more data
+        startAfter(lastFetchedListing),
+        limit(5)
+      )
+      const querySnap = await getDocs(q)
+      const lastVisible = querySnap.docs[querySnap.docs.length - 1]
+      setLastFetchedListing(lastVisible)
+
+      const moreListings = []
+      
+      querySnap.forEach((doc) => {
+        return moreListings.push({
+          id: doc.id,
+          data: doc.data()
+        })
+      })
+      
+      // add more listings to listings :D
+      setListings((listings) => [...listings, ...moreListings] )
+      setLoading(false)
+    } catch (error) {
+      toast.error('Could not fetch listings')
+    }
+  }
+
   return (
     <div className='category'>
       <header>
@@ -65,6 +104,11 @@ function Offers() {
               ))}
             </ul>
           </main>
+          <br />
+          <br />
+          {lastFetchedListing && (
+            <p onClick={onFetchMoreListings} className="loadMore">Load More...</p>
+          )}
         </> 
         : <h4>There are no current offers</h4>}
     </div>
